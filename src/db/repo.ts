@@ -46,6 +46,8 @@ export interface CustomFood {
   name: string;
   kcal: number;
   protein?: number;
+  carbs?: number;
+  fat?: number;
   saveAsMeal?: boolean;
 }
 
@@ -58,6 +60,8 @@ export async function logCustom(food: CustomFood, date: string): Promise<() => P
         name: food.name,
         kcal: food.kcal,
         protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
         useCount: 1,
         lastUsed: today(),
       } as Meal)) as number;
@@ -69,6 +73,8 @@ export async function logCustom(food: CustomFood, date: string): Promise<() => P
       name: food.name,
       kcal: food.kcal,
       protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
       portion: 1,
     } as FoodEntry)) as number;
     return { entryId, mealId };

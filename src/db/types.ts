@@ -1,5 +1,7 @@
 // Every record carries `uuid` + `updatedAt` so Phase 4 sync (last-write-wins per
 // record) works without a migration. The Dexie hooks in db.ts fill them in.
+import type { Profile } from '../utils/goals';
+
 export interface SyncFields {
   uuid: string;       // stable id across devices (crypto.randomUUID)
   updatedAt: string;  // ISO timestamp, bumped on every write
@@ -55,7 +57,10 @@ export interface Settings extends SyncFields {
   key: 'main';
   kcalTarget?: number;
   proteinTarget?: number;
+  carbsTarget?: number;   // g
+  fatTarget?: number;     // g
   stepTarget?: number;
+  profile?: Partial<Profile>; // for the goal calculator; stored metric
   units: 'metric' | 'imperial';
   lastBackupAt?: string;
   backupBannerDismissedAt?: string;

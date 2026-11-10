@@ -28,7 +28,7 @@ export function FoodList({ entries }: { entries: FoodEntry[] }) {
                 {e.name}
                 {e.portion !== 1 && <span className="text-zinc-500"> ×{portionLabel(e.portion)}</span>}
               </span>
-              <span className="tabular-nums text-sm">{Math.round(e.kcal * e.portion)}</span>
+              <span className="tabular-nums text-sm">{Math.round(e.kcal * e.portion).toLocaleString()}</span>
             </button>
             <button className="min-h-11 min-w-11 text-zinc-400 hover:text-red-600" onClick={() => remove(e)} aria-label={`Delete ${e.name}`}>
               ✕

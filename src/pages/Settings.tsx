@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { isStandalone } from '../components/Banners';
+import { GoalCalculator } from '../components/GoalCalculator';
 import { useToast } from '../components/Toast';
 import { Button, inputCls, optNum } from '../components/ui';
 import { BackupError, importBackup, parseBackup, runExport, type Backup, type ImportMode } from '../db/backup';
@@ -12,9 +13,14 @@ export function Settings() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Settings</h1>
+      <Section title="Goal calculator">
+        <GoalCalculator key={`${s.uuid ?? 'loading'}:${s.units}`} settings={s} />
+      </Section>
       <Section title="Targets">
         <NumberSetting label="Calories (kcal)" field="kcalTarget" value={s.kcalTarget} key={`kcalTarget:${s.kcalTarget ?? ''}`} />
         <NumberSetting label="Protein (g)" field="proteinTarget" value={s.proteinTarget} key={`proteinTarget:${s.proteinTarget ?? ''}`} />
+        <NumberSetting label="Carbs (g)" field="carbsTarget" value={s.carbsTarget} key={`carbsTarget:${s.carbsTarget ?? ''}`} />
+        <NumberSetting label="Fat (g)" field="fatTarget" value={s.fatTarget} key={`fatTarget:${s.fatTarget ?? ''}`} />
         <NumberSetting label="Steps" field="stepTarget" value={s.stepTarget} key={`stepTarget:${s.stepTarget ?? ''}`} />
       </Section>
       <Section title="Units">
@@ -38,13 +44,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function NumberSetting({ label, field, value }: { label: string; field: 'kcalTarget' | 'proteinTarget' | 'stepTarget'; value?: number }) {
+function NumberSetting({ label, field, value }: { label: string; field: 'kcalTarget' | 'proteinTarget' | 'carbsTarget' | 'fatTarget' | 'stepTarget'; value?: number }) {
   const [v, setV] = useState(value?.toString() ?? '');
   return (
     <label className="flex items-center gap-3">
       <span className="flex-1">{label}</span>
       <input
-        className={`${inputCls} w-32 text-right`}
+        className={`${inputCls.replace('w-full', 'w-32 shrink-0')} text-right`}
         inputMode="numeric"
         value={v}
         onChange={(e) => setV(e.target.value.replace(/[^\d]/g, ''))}

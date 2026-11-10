@@ -1,9 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { ToastProvider } from './components/Toast';
 import { useRoute, type Route } from './hooks/useRoute';
-import { History } from './pages/History';
 import { Meals } from './pages/Meals';
 import { Settings } from './pages/Settings';
 import { Today } from './pages/Today';
+
+// Charts library is only loaded when History opens.
+const History = lazy(() => import('./pages/History'));
 
 const TABS: { page: Route['page']; label: string; icon: string; href: string }[] = [
   { page: 'today', label: 'Today', icon: '◉', href: '#/today' },
@@ -19,7 +22,11 @@ export default function App() {
       <main className="mx-auto max-w-xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-28">
         {route.page === 'today' && <Today date={route.date} />}
         {route.page === 'meals' && <Meals />}
-        {route.page === 'history' && <History />}
+        {route.page === 'history' && (
+          <Suspense fallback={<p className="text-sm text-zinc-500">Loading…</p>}>
+            <History />
+          </Suspense>
+        )}
         {route.page === 'settings' && <Settings />}
       </main>
       <nav className="fixed bottom-0 inset-x-0 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">

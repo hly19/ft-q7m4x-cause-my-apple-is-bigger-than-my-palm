@@ -39,9 +39,13 @@ export function Today({ date }: { date: string }) {
       <SummaryBar
         kcal={totals.kcal}
         protein={totals.protein}
+        carbs={totals.carbs}
+        fat={totals.fat}
         steps={day?.steps ?? 0}
         kcalTarget={settings.kcalTarget}
         proteinTarget={settings.proteinTarget}
+        carbsTarget={settings.carbsTarget}
+        fatTarget={settings.fatTarget}
         stepTarget={settings.stepTarget}
       />
 
