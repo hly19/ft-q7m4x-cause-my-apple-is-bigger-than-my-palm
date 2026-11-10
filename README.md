@@ -9,7 +9,7 @@ npm test         # unit tests (backup round-trip, date helpers)
 npm run build    # production build + service worker
 ```
 
-GitHub Pages under `/<repo>/`: `BASE=/<repo>/ npm run build`.
+Deploys to GitHub Pages automatically on push to `main` (`.github/workflows/deploy.yml`).
 Regenerate icons: `node scripts/make-icons.mjs` (needs Playwright).
 
 ## Notes
