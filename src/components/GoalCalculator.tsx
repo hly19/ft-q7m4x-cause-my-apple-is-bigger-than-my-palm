@@ -1,35 +1,29 @@
 import { useState } from 'react';
 import { updateSettings } from '../db/repo';
 import type { Settings } from '../db/types';
-import { ACTIVITY, calcTargets, CM_PER_IN, GOALS, isCompleteProfile, KG_PER_LB, type Activity, type Goal, type Profile, type Sex } from '../utils/goals';
+import { ACTIVITY, calcTargets, GOALS, isCompleteProfile, KG_PER_LB, type Activity, type Goal, type Profile, type Sex } from '../utils/goals';
 import { useToast } from './Toast';
 import { Button, inputCls, optNum } from './ui';
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 export function GoalCalculator({ settings }: { settings: Settings }) {
-  const imperial = settings.units === 'imperial';
   const p = settings.profile ?? {};
   const toast = useToast();
   const [sex, setSex] = useState<Sex | undefined>(p.sex);
   const [age, setAge] = useState(p.age?.toString() ?? '');
-  const [weight, setWeight] = useState(p.weightKg ? String(imperial ? r1(p.weightKg / KG_PER_LB) : p.weightKg) : '');
-  const totalIn = p.heightCm ? p.heightCm / CM_PER_IN : undefined;
+  const [weight, setWeight] = useState(p.weightKg ? String(r1(p.weightKg / KG_PER_LB)) : '');
   const [cm, setCm] = useState(p.heightCm?.toString() ?? '');
-  const [ft, setFt] = useState(totalIn ? String(Math.floor(totalIn / 12)) : '');
-  const [inch, setInch] = useState(totalIn ? String(Math.round(totalIn % 12)) : '');
   const [activity, setActivity] = useState<Activity>(p.activity ?? 'light');
   const [goal, setGoal] = useState<Goal>(p.goal ?? 'recomp');
 
   const w = optNum(weight);
-  const heightCm = imperial
-    ? ft || inch ? ((optNum(ft) ?? 0) * 12 + (optNum(inch) ?? 0)) * CM_PER_IN : undefined
-    : optNum(cm);
+  const heightCm = optNum(cm);
   const profile: Partial<Profile> = {
     sex,
     age: optNum(age),
     heightCm: heightCm ? r1(heightCm) : undefined,
-    weightKg: w ? r1(imperial ? w * KG_PER_LB : w) : undefined,
+    weightKg: w ? r1(w * KG_PER_LB) : undefined,
     activity,
     goal,
   };
@@ -63,19 +57,10 @@ export function GoalCalculator({ settings }: { settings: Settings }) {
         <label className="text-xs text-zinc-500">Age
           <input className={inputCls} inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} />
         </label>
-        {imperial ? (
-          <label className="text-xs text-zinc-500">Height ft / in
-            <span className="flex gap-1">
-              <input className={inputCls} inputMode="numeric" value={ft} onChange={(e) => setFt(e.target.value)} aria-label="Feet" />
-              <input className={inputCls} inputMode="numeric" value={inch} onChange={(e) => setInch(e.target.value)} aria-label="Inches" />
-            </span>
-          </label>
-        ) : (
-          <label className="text-xs text-zinc-500">Height cm
-            <input className={inputCls} inputMode="numeric" value={cm} onChange={(e) => setCm(e.target.value)} />
-          </label>
-        )}
-        <label className="text-xs text-zinc-500">Weight {imperial ? 'lb' : 'kg'}
+        <label className="text-xs text-zinc-500">Height cm
+          <input className={inputCls} inputMode="numeric" value={cm} onChange={(e) => setCm(e.target.value)} />
+        </label>
+        <label className="text-xs text-zinc-500">Weight lb
           <input className={inputCls} inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} />
         </label>
       </div>

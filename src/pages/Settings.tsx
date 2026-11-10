@@ -5,7 +5,6 @@ import { useToast } from '../components/Toast';
 import { Button, inputCls, optNum } from '../components/ui';
 import { BackupError, importBackup, parseBackup, runExport, type Backup, type ImportMode } from '../db/backup';
 import { updateSettings } from '../db/repo';
-import type { Settings as S } from '../db/types';
 import { useSettings } from '../hooks/useSettings';
 
 export function Settings() {
@@ -14,7 +13,7 @@ export function Settings() {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Settings</h1>
       <Section title="Goal calculator">
-        <GoalCalculator key={`${s.uuid ?? 'loading'}:${s.units}`} settings={s} />
+        <GoalCalculator key={s.uuid ?? 'loading'} settings={s} />
       </Section>
       <Section title="Targets">
         <NumberSetting label="Calories (kcal)" field="kcalTarget" value={s.kcalTarget} key={`kcalTarget:${s.kcalTarget ?? ''}`} />
@@ -22,12 +21,6 @@ export function Settings() {
         <NumberSetting label="Carbs (g)" field="carbsTarget" value={s.carbsTarget} key={`carbsTarget:${s.carbsTarget ?? ''}`} />
         <NumberSetting label="Fat (g)" field="fatTarget" value={s.fatTarget} key={`fatTarget:${s.fatTarget ?? ''}`} />
         <NumberSetting label="Steps" field="stepTarget" value={s.stepTarget} key={`stepTarget:${s.stepTarget ?? ''}`} />
-      </Section>
-      <Section title="Units">
-        <select className={inputCls} value={s.units} onChange={(e) => updateSettings({ units: e.target.value as S['units'] })} aria-label="Units">
-          <option value="metric">Metric (kg)</option>
-          <option value="imperial">Imperial (lb)</option>
-        </select>
       </Section>
       <BackupSection lastBackupAt={s.lastBackupAt} />
       <StorageSection />

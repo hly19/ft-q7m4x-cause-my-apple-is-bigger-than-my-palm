@@ -61,4 +61,3 @@ export function isCompleteProfile(p: Partial<Profile> | undefined): p is Profile
 }
 
 export const KG_PER_LB = 0.45359237;
-export const CM_PER_IN = 2.54;

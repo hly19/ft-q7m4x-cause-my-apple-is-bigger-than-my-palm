@@ -60,8 +60,8 @@ export interface Settings extends SyncFields {
   carbsTarget?: number;   // g
   fatTarget?: number;     // g
   stepTarget?: number;
-  profile?: Partial<Profile>; // for the goal calculator; stored metric
-  units: 'metric' | 'imperial';
+  profile?: Partial<Profile>; // goal calculator; stored metric, shown as cm + lb
+  units: 'metric' | 'imperial'; // unused: app is fixed to cm, lb, kcal, g
   lastBackupAt?: string;
   backupBannerDismissedAt?: string;
   aiApiKey?: string;  // phase 3, never exported
