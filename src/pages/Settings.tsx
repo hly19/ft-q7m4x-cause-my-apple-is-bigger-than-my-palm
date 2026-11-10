@@ -95,7 +95,7 @@ function BackupSection({ lastBackupAt }: { lastBackupAt?: string }) {
     setBusy(true);
     try {
       const r = await importBackup(pending, mode);
-      const n = r.added.foodEntries + r.added.meals + r.added.workouts + r.added.days;
+      const n = r.added.foodEntries + r.added.meals + r.added.days;
       toast(mode === 'replace' ? 'Backup restored' : `Merged ${n} records (${r.skipped.foodEntries} duplicate entries skipped)`);
       setPending(null);
     } catch (err) {
@@ -120,7 +120,7 @@ function BackupSection({ lastBackupAt }: { lastBackupAt?: string }) {
         <div className="rounded-xl border border-zinc-300 dark:border-zinc-700 p-3 space-y-2">
           <p className="text-sm">
             Backup from {pending.exportedAt ? new Date(pending.exportedAt).toLocaleString() : 'unknown date'}:{' '}
-            {pending.data.foodEntries.length} entries, {pending.data.meals.length} meals, {pending.data.workouts.length} workouts, {pending.data.days.length} days.
+            {pending.data.foodEntries.length} entries, {pending.data.meals.length} meals, {pending.data.days.length} days.
           </p>
           {(['merge', 'replace'] as const).map((m) => (
             <label key={m} className="flex items-start gap-3 min-h-11">

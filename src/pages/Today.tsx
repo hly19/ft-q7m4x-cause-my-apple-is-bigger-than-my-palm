@@ -7,7 +7,6 @@ import { QuickAddGrid } from '../components/QuickAddGrid';
 import { StepsInput } from '../components/StepsInput';
 import { SummaryBar } from '../components/SummaryBar';
 import { Button } from '../components/ui';
-import { WorkoutForm, WorkoutList } from '../components/WorkoutForm';
 import { db } from '../db/db';
 import { useDay } from '../hooks/useDay';
 import { go } from '../hooks/useRoute';
@@ -17,10 +16,10 @@ import { addDays, dayLabel, today } from '../utils/dates';
 
 export function Today({ date }: { date: string }) {
   const settings = useSettings();
-  const { entries, workouts, day } = useDay(date);
+  const { entries, day } = useDay(date);
   const totals = useTotals(entries);
   const hasData = useLiveQuery(async () => (await db.foodEntries.count()) > 0, []) ?? false;
-  const [modal, setModal] = useState<'custom' | 'workout' | null>(null);
+  const [modal, setModal] = useState<'custom' | null>(null);
   const isToday = date === today();
 
   return (
@@ -60,16 +59,7 @@ export function Today({ date }: { date: string }) {
         <StepsInput key={`${date}:${day?.steps ?? ''}`} date={date} steps={day?.steps} />
       </section>
 
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">Workouts</h2>
-          <Button variant="ghost" onClick={() => setModal('workout')}>+ Workout</Button>
-        </div>
-        <WorkoutList workouts={workouts} />
-      </section>
-
       {modal === 'custom' && <CustomFoodForm date={date} onClose={() => setModal(null)} />}
-      {modal === 'workout' && <WorkoutForm date={date} onClose={() => setModal(null)} />}
     </div>
   );
 }

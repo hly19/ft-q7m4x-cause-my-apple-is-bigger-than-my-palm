@@ -1,6 +1,6 @@
 // All writes go through here so totals, useCount, tombstones and undo stay consistent.
 import { db, nowIso } from './db';
-import type { DayLog, FoodEntry, Meal, New, Settings, SyncTable, Workout } from './types';
+import type { DayLog, FoodEntry, Meal, New, Settings, SyncTable } from './types';
 import { nowTime, today } from '../utils/dates';
 
 export const DEFAULT_SETTINGS: New<Settings> = { key: 'main', units: 'metric', stepTarget: 10000 };
@@ -89,7 +89,7 @@ export async function updateFoodEntry(id: number, changes: Partial<FoodEntry>): 
   };
 }
 
-type IdTable = 'foodEntries' | 'workouts' | 'meals';
+type IdTable = 'foodEntries' | 'meals';
 
 /** Delete with a tombstone (for future sync). Returns an undo function. */
 export async function deleteRecord(table: IdTable, id: number): Promise<() => Promise<void>> {
@@ -111,13 +111,6 @@ async function removeWithTombstone(table: SyncTable, key: number | string) {
   await t.delete(key);
   await db.tombstones.put({ uuid: rec.uuid, table, deletedAt: nowIso() });
   return rec;
-}
-
-export async function addWorkout(w: New<Workout>): Promise<() => Promise<void>> {
-  const id = (await db.workouts.add(w as Workout)) as number;
-  return async () => {
-    await db.transaction('rw', db.workouts, db.tombstones, () => removeWithTombstone('workouts', id));
-  };
 }
 
 /** Upsert fields on a day row. */
