@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
+import { ItemsList } from '../components/ItemsList';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { Button, Input, inputCls, optNum } from '../components/ui';
@@ -107,6 +108,7 @@ function MealForm({ meal, onClose }: { meal: Partial<Meal>; onClose: () => void 
   return (
     <Modal title={meal.id ? 'Edit meal' : 'New meal'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
+        <ItemsList items={meal.items} />
         <Input autoFocus={!meal.id} placeholder="Name" value={f.name} onChange={set('name')} aria-label="Name" />
         <div className="grid grid-cols-2 gap-2">
           <Input inputMode="numeric" placeholder="kcal" value={f.kcal} onChange={set('kcal')} aria-label="Calories" />

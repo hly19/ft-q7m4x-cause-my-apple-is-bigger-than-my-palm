@@ -1,6 +1,6 @@
 // All writes go through here so totals, useCount, tombstones and undo stay consistent.
 import { db, nowIso } from './db';
-import type { DayLog, FoodEntry, Meal, New, Settings, SyncTable } from './types';
+import type { DayLog, FoodEntry, LoggedItem, Meal, New, Settings, SyncTable, UserFood } from './types';
 import { nowTime, today } from '../utils/dates';
 
 export const DEFAULT_SETTINGS: New<Settings> = { key: 'main', units: 'metric', stepTarget: 10000 };
@@ -30,6 +30,7 @@ export async function logMeal(meal: Meal, date: string, portion = 1): Promise<()
       carbs: meal.carbs,
       fat: meal.fat,
       portion,
+      items: meal.items,
     } as FoodEntry)) as number;
     await db.meals.update(meal.id!, { useCount: meal.useCount + 1, lastUsed: today() });
     return entryId;
@@ -48,6 +49,7 @@ export interface CustomFood {
   protein?: number;
   carbs?: number;
   fat?: number;
+  items?: LoggedItem[];
   saveAsMeal?: boolean;
 }
 
@@ -62,6 +64,7 @@ export async function logCustom(food: CustomFood, date: string): Promise<() => P
         protein: food.protein,
         carbs: food.carbs,
         fat: food.fat,
+        items: food.items,
         useCount: 1,
         lastUsed: today(),
       } as Meal)) as number;
@@ -75,6 +78,7 @@ export async function logCustom(food: CustomFood, date: string): Promise<() => P
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
+      items: food.items,
       portion: 1,
     } as FoodEntry)) as number;
     return { entryId, mealId };
@@ -95,7 +99,7 @@ export async function updateFoodEntry(id: number, changes: Partial<FoodEntry>): 
   };
 }
 
-type IdTable = 'foodEntries' | 'meals';
+type IdTable = 'foodEntries' | 'meals' | 'foods';
 
 /** Delete with a tombstone (for future sync). Returns an undo function. */
 export async function deleteRecord(table: IdTable, id: number): Promise<() => Promise<void>> {
@@ -134,4 +138,12 @@ export async function saveMeal(meal: New<Meal>): Promise<number> {
     return meal.id;
   }
   return (await db.meals.add({ ...meal, useCount: meal.useCount ?? 0 } as Meal)) as number;
+}
+
+export async function saveUserFood(food: New<UserFood>): Promise<number> {
+  if (food.id != null) {
+    await db.foods.update(food.id, food);
+    return food.id;
+  }
+  return (await db.foods.add(food as UserFood)) as number;
 }

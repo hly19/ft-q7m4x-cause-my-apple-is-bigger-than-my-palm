@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { logCustom } from '../db/repo';
+import { FoodBuilder } from './FoodBuilder';
 import { Modal } from './Modal';
 import { useToast } from './Toast';
 import { Button, Input, optNum } from './ui';
@@ -11,6 +12,7 @@ export function CustomFoodForm({ date, onClose }: { date: string; onClose: () =>
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
   const [save, setSave] = useState(false);
+  const [tab, setTab] = useState<'build' | 'quick'>('build');
   const toast = useToast();
   const k = optNum(kcal);
   const valid = name.trim() !== '' && k != null;
@@ -25,6 +27,21 @@ export function CustomFoodForm({ date, onClose }: { date: string; onClose: () =>
 
   return (
     <Modal title="Add food" onClose={onClose}>
+      <div className="grid grid-cols-2 gap-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 mb-3" role="tablist">
+        {([['build', 'Build from foods'], ['quick', 'Enter kcal']] as const).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={tab === k}
+            onClick={() => setTab(k)}
+            className={`min-h-10 rounded-md text-sm ${tab === k ? 'bg-white dark:bg-zinc-950 shadow font-semibold' : 'text-zinc-500'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'build' ? <FoodBuilder date={date} onDone={onClose} /> : (
       <form onSubmit={submit} className="space-y-3">
         <Input autoFocus placeholder="What did you eat?" value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" />
         <Input inputMode="numeric" placeholder="kcal" value={kcal} onChange={(e) => setKcal(e.target.value)} aria-label="Calories" />
@@ -40,6 +57,7 @@ export function CustomFoodForm({ date, onClose }: { date: string; onClose: () =>
         </label>
         <Button variant="primary" className="w-full" disabled={!valid}>Log it</Button>
       </form>
+      )}
     </Modal>
   );
 }

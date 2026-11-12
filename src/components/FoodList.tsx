@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { deleteRecord, updateFoodEntry } from '../db/repo';
 import type { FoodEntry } from '../db/types';
+import { ItemsList } from './ItemsList';
 import { Modal } from './Modal';
 import { PORTIONS, portionLabel } from './PortionPicker';
 import { useToast } from './Toast';
@@ -77,6 +78,7 @@ function EditEntry({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
   return (
     <Modal title="Edit entry" onClose={onClose}>
       <form onSubmit={save} className="space-y-3">
+        <ItemsList items={entry.items} factor={f.portion} />
         <Input value={f.name} onChange={set('name')} aria-label="Name" />
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-zinc-500">kcal per portion<Input inputMode="numeric" value={f.kcal} onChange={set('kcal')} /></label>

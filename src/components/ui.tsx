@@ -1,10 +1,10 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, Ref } from 'react';
 
 export const inputCls =
   'w-full min-h-11 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500';
 
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`${inputCls} ${props.className ?? ''}`} />;
+export function Input({ ref, ...props }: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
+  return <input ref={ref} {...props} className={`${inputCls} ${props.className ?? ''}`} />;
 }
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';

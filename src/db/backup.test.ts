@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FitDB, SCHEMA_VERSION } from './db';
 import { BackupError, backupFilename, exportBackup, importBackup, parseBackup, type Backup } from './backup';
-import type { DayLog, FoodEntry, Meal, Settings, Workout } from './types';
+import type { DayLog, FoodEntry, Meal, Settings, UserFood, Workout } from './types';
 
 let n = 0;
 let db: FitDB;
@@ -19,11 +19,13 @@ async function seed(target: FitDB) {
   const oats = await target.meals.add({ name: 'Oats', kcal: 350, protein: 12, tags: ['breakfast'], useCount: 5, lastUsed: '2026-11-09' } as Meal);
   await target.meals.add({ name: 'Stir fry', kcal: 650, protein: 40, useCount: 2, archived: true } as Meal);
   await target.foodEntries.bulkAdd([
-    { date: '2026-11-09', time: '08:00', mealId: oats, name: 'Oats', kcal: 350, protein: 12, portion: 1 },
+    { date: '2026-11-09', time: '08:00', mealId: oats, name: 'Oats', kcal: 350, protein: 12, portion: 1,
+      items: [{ foodKey: 'oats', name: 'Oats (dry)', qty: 1, unit: 'cupped', unitLabel: '🤲 ½ cup dry', kcal: 150, protein: 5, carbs: 27, fat: 3 }] },
     { date: '2026-11-09', time: '13:10', name: 'Sandwich', kcal: 500, portion: 1.5, note: 'café' },
   ] as FoodEntry[]);
   await target.workouts.add({ date: '2026-11-09', type: 'Run', durationMin: 30, intensity: 'medium' } as Workout);
   await target.days.add({ date: '2026-11-09', steps: 8123, bodyWeight: 71.5 } as DayLog);
+  await target.foods.add({ name: 'My protein bar', unitLabel: 'bar', kcal: 210, protein: 20 } as UserFood);
   await target.tombstones.add({ uuid: 'gone-1', table: 'foodEntries', deletedAt: '2026-11-08T10:00:00.000Z' });
 }
 
@@ -35,6 +37,7 @@ async function dump(target: FitDB) {
     days: await target.days.toArray(),
     settings: (await target.settings.toArray()).map(({ aiApiKey: _k, ...s }) => s),
     tombstones: await target.tombstones.toArray(),
+    foods: await target.foods.toArray(),
   };
 }
 
@@ -60,7 +63,7 @@ describe('backup export', () => {
     const b = await exportBackup(db);
     expect(b.schemaVersion).toBe(SCHEMA_VERSION);
     expect(Date.parse(b.exportedAt)).not.toBeNaN();
-    expect(Object.keys(b.data).sort()).toEqual(['days', 'foodEntries', 'meals', 'settings', 'tombstones', 'workouts']);
+    expect(Object.keys(b.data).sort()).toEqual(['days', 'foodEntries', 'foods', 'meals', 'settings', 'tombstones', 'workouts']);
     expect(JSON.stringify(b)).not.toContain('sk-secret');
   });
 
@@ -161,5 +164,28 @@ describe('merge keeps legit same-minute repeats', () => {
     await other.delete();
     await importBackup(backup, 'merge', db);
     expect(await db.foodEntries.count()).toBe(2);
+  });
+});
+
+describe('schema v1 backups', () => {
+  it('import into the v2 database (no foods table in the file)', async () => {
+    await seed(db);
+    const v2 = await exportBackup(db);
+    const { foods: _f, ...v1data } = v2.data;
+    const v1 = parseBackup(JSON.stringify({ ...v2, schemaVersion: 1, data: v1data }));
+    expect(v1.data.foods).toEqual([]);
+    await importBackup(v1, 'replace', db);
+    expect(await db.foods.count()).toBe(0);
+    expect(await db.foodEntries.count()).toBe(2);
+  });
+
+  it('merges user foods without duplicating by name', async () => {
+    await seed(db);
+    const b = roundTrip(await exportBackup(db));
+    await db.foods.clear();
+    await db.foods.add({ name: 'my protein bar', unitLabel: 'bar', kcal: 200 } as UserFood);
+    const r = await importBackup(b, 'merge', db);
+    expect(r.skipped.foods).toBe(1);
+    expect(await db.foods.count()).toBe(1);
   });
 });

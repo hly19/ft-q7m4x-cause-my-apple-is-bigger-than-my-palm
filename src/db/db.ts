@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type { DayLog, FoodEntry, Meal, Settings, SyncFields, Tombstone, Workout } from './types';
+import type { DayLog, FoodEntry, Meal, Settings, SyncFields, Tombstone, UserFood, Workout } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const newUuid = () => crypto.randomUUID();
 export const nowIso = () => new Date().toISOString();
@@ -13,12 +13,13 @@ export class FitDB extends Dexie {
   days!: EntityTable<DayLog, 'date'>;
   settings!: EntityTable<Settings, 'key'>;
   tombstones!: EntityTable<Tombstone, 'uuid'>;
+  foods!: EntityTable<UserFood, 'id'>;
 
   constructor(name = 'fittrack') {
     super(name);
     // Schema changes: add db.version(2)... with .upgrade(). Never drop tables.
     // (`archived` is a boolean, which IndexedDB can't index, so it's filtered in memory.)
-    this.version(SCHEMA_VERSION).stores({
+    this.version(1).stores({
       meals: '++id, &uuid, name, useCount, lastUsed, updatedAt',
       foodEntries: '++id, &uuid, date, mealId, updatedAt',
       workouts: '++id, &uuid, date, type, updatedAt',
@@ -26,8 +27,12 @@ export class FitDB extends Dexie {
       settings: 'key, updatedAt',
       tombstones: 'uuid, table, deletedAt',
     });
+    // v2: user-added foods for the food builder. (items/handSize are unindexed fields.)
+    this.version(2).stores({
+      foods: '++id, &uuid, name, updatedAt',
+    });
 
-    for (const t of [this.meals, this.foodEntries, this.workouts, this.days, this.settings]) {
+    for (const t of [this.meals, this.foodEntries, this.workouts, this.days, this.settings, this.foods]) {
       addSyncHooks(t as unknown as Table<SyncFields>);
     }
   }

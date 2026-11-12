@@ -8,7 +8,8 @@ Accuracy target: roughly 80%. Trends over precision.
 ## Principles
 - Local-first. All data in the browser (IndexedDB). No server, no account.
 - Works offline. Installable as a PWA on phone and desktop.
-- Rough estimates are fine. No food database, no scale.
+- Rough estimates are fine. No scale, no online food database.
+  A small built-in food list (~160 items, `src/data/foods.ts`) with hand-portion units powers the food builder.
 - Repeat meals are one tap.
 - Never lose data: easy backup and restore.
 
@@ -174,7 +175,7 @@ Use Dexie version upgrades for future schema changes. Never drop tables.
   (If planning this, add `updatedAt` and a UUID to every record from the start.)
 
 ## Out of Scope
-- Food databases or barcode scanning
+- Online food databases or barcode scanning
 - Micronutrients
 - Social features
 - Accounts / backend server

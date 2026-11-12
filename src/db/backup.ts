@@ -1,5 +1,5 @@
 import { db as defaultDb, nowIso, SCHEMA_VERSION, type FitDB } from './db';
-import type { DayLog, FoodEntry, Meal, Settings, Tombstone, Workout } from './types';
+import type { DayLog, FoodEntry, Meal, Settings, Tombstone, UserFood, Workout } from './types';
 import { toLocalDate } from '../utils/dates';
 
 export interface BackupData {
@@ -9,6 +9,7 @@ export interface BackupData {
   days: DayLog[];
   settings: Settings[];
   tombstones: Tombstone[];
+  foods: UserFood[];
 }
 
 export interface Backup {
@@ -18,20 +19,21 @@ export interface Backup {
   data: BackupData;
 }
 
-const TABLES = ['meals', 'foodEntries', 'workouts', 'days', 'settings', 'tombstones'] as const;
+const TABLES = ['meals', 'foodEntries', 'workouts', 'days', 'settings', 'tombstones', 'foods'] as const;
 
 export class BackupError extends Error {}
 
 /** Snapshot every table. The AI API key is stripped so backups are safe to store in the cloud. */
 export async function exportBackup(db: FitDB = defaultDb): Promise<Backup> {
   return db.transaction('r', db.tables, async () => {
-    const [meals, foodEntries, workouts, days, settings, tombstones] = await Promise.all([
+    const [meals, foodEntries, workouts, days, settings, tombstones, foods] = await Promise.all([
       db.meals.toArray(),
       db.foodEntries.toArray(),
       db.workouts.toArray(),
       db.days.toArray(),
       db.settings.toArray(),
       db.tombstones.toArray(),
+      db.foods.toArray(),
     ]);
     return {
       app: 'fittrack',
@@ -44,6 +46,7 @@ export async function exportBackup(db: FitDB = defaultDb): Promise<Backup> {
         days,
         settings: settings.map(({ aiApiKey: _omit, ...s }) => s),
         tombstones,
+        foods,
       },
     };
   });
@@ -100,7 +103,7 @@ export interface ImportResult {
 }
 
 const zero = (): Record<keyof BackupData, number> =>
-  ({ meals: 0, foodEntries: 0, workouts: 0, days: 0, settings: 0, tombstones: 0 });
+  ({ meals: 0, foodEntries: 0, workouts: 0, days: 0, settings: 0, tombstones: 0, foods: 0 });
 
 export async function importBackup(backup: Backup, mode: ImportMode, db: FitDB = defaultDb): Promise<ImportResult> {
   return mode === 'replace' ? replaceAll(backup, db) : merge(backup, db);
@@ -133,6 +136,7 @@ const newer = (a?: string, b?: string) => (a ?? '') > (b ?? '');
  * - food entries: skipped if uuid or date+time+name already exists.
  * - workouts: skipped if uuid or date+type+duration already exists.
  * - settings: local settings kept; empty local targets filled from the backup.
+ * - foods (user-added): same uuid → newer wins; same name → skipped; else added.
  */
 async function merge(backup: Backup, db: FitDB): Promise<ImportResult> {
   const r: ImportResult = { added: zero(), skipped: zero() };
@@ -219,6 +223,26 @@ async function merge(backup: Backup, db: FitDB): Promise<ImportResult> {
         await db.settings.update('main', fill);
         r.added.settings++;
       } else r.skipped.settings++;
+    }
+
+    const localFoods = await db.foods.toArray();
+    const foodByUuid = new Map(localFoods.map((x) => [x.uuid, x]));
+    const foodNames = new Set(localFoods.map((x) => norm(x.name)));
+    for (const uf of data.foods) {
+      const { id: _id, ...rest } = uf;
+      const match = uf.uuid ? foodByUuid.get(uf.uuid) : undefined;
+      if (match) {
+        if (newer(uf.updatedAt, match.updatedAt)) {
+          await db.foods.put({ ...rest, id: match.id });
+          r.added.foods++;
+        } else r.skipped.foods++;
+      } else if (foodNames.has(norm(uf.name))) {
+        r.skipped.foods++;
+      } else {
+        await db.foods.add(rest as UserFood);
+        foodNames.add(norm(uf.name));
+        r.added.foods++;
+      }
     }
 
     for (const t of data.tombstones) {

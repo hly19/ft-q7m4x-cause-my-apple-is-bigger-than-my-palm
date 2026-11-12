@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { isStandalone } from '../components/Banners';
 import { GoalCalculator } from '../components/GoalCalculator';
+import { UserFoodForm } from '../components/UserFoodForm';
+import { useFoods } from '../hooks/useFoods';
+import { deleteRecord } from '../db/repo';
+import type { UserFood } from '../db/types';
+import type { HandSize } from '../utils/nutrition';
 import { useToast } from '../components/Toast';
 import { Button, inputCls, optNum } from '../components/ui';
 import { BackupError, importBackup, parseBackup, runExport, type Backup, type ImportMode } from '../db/backup';
@@ -21,6 +26,12 @@ export function Settings() {
         <NumberSetting label="Carbs (g)" field="carbsTarget" value={s.carbsTarget} key={`carbsTarget:${s.carbsTarget ?? ''}`} />
         <NumberSetting label="Fat (g)" field="fatTarget" value={s.fatTarget} key={`fatTarget:${s.fatTarget ?? ''}`} />
         <NumberSetting label="Steps" field="stepTarget" value={s.stepTarget} key={`stepTarget:${s.stepTarget ?? ''}`} />
+      </Section>
+      <Section title="Hand size">
+        <HandSizePicker value={s.handSize ?? 'medium'} />
+      </Section>
+      <Section title="My foods">
+        <MyFoods />
       </Section>
       <BackupSection lastBackupAt={s.lastBackupAt} />
       <StorageSection />
@@ -170,5 +181,62 @@ function StorageSection() {
         Home Screen{isStandalone() ? ' (installed ✓)' : ''}. Export a backup regularly.
       </p>
     </Section>
+  );
+}
+
+function HandSizePicker({ value }: { value: HandSize }) {
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1" role="radiogroup" aria-label="Hand size">
+        {(['small', 'medium', 'large'] as const).map((h) => (
+          <button
+            key={h}
+            role="radio"
+            aria-checked={value === h}
+            onClick={() => updateSettings({ handSize: h })}
+            className={`min-h-10 rounded-md text-sm capitalize ${value === h ? 'bg-white dark:bg-zinc-950 shadow font-semibold' : 'text-zinc-500'}`}
+          >
+            {h}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-zinc-500">
+        Scales palm, cupped hand, fist and thumb portions. Tip: a medium palm (no fingers) is about the size of a deck of cards.
+        Smaller → small, bigger → large.
+      </p>
+    </>
+  );
+}
+
+function MyFoods() {
+  const { userFoods } = useFoods();
+  const toast = useToast();
+  const [editing, setEditing] = useState<UserFood | 'new' | null>(null);
+  return (
+    <>
+      {userFoods.length === 0 && <p className="text-sm text-zinc-500">Foods you add in the food builder show up here.</p>}
+      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        {userFoods.map((f) => (
+          <li key={f.id} className="flex items-center">
+            <button className="flex-1 min-h-12 text-left py-2" onClick={() => setEditing(f)}>
+              <span className="block">{f.name}</span>
+              <span className="text-xs text-zinc-500">
+                {f.kcal} kcal per {f.unitLabel}
+                {f.protein != null && ` · ${f.protein}g P`}
+              </span>
+            </button>
+            <button
+              className="min-h-11 min-w-11 text-zinc-400 hover:text-red-600"
+              aria-label={`Delete ${f.name}`}
+              onClick={async () => toast(`Deleted ${f.name}`, await deleteRecord('foods', f.id!))}
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Button onClick={() => setEditing('new')}>+ Add a food</Button>
+      {editing && <UserFoodForm food={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} />}
+    </>
   );
 }
