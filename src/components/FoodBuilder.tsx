@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { db } from '../db/db';
-import { logCustom } from '../db/repo';
+import { logCustom, saveMeal } from '../db/repo';
 import type { LoggedItem } from '../db/types';
-import type { FoodDef } from '../data/foods';
+import { TAKEOUT_KEYS, type FoodDef } from '../data/foods';
 import { userFoodToDef, useFoods } from '../hooks/useFoods';
 import { useSettings } from '../hooks/useSettings';
 import { fmtQty, isAmountUnit, isHandUnit, itemNutrition, searchFoods, sumMacros, unitLabel } from '../utils/nutrition';
@@ -16,7 +16,7 @@ let nextId = 1;
 const defaultQty = (food: FoodDef, idx: number) => (isAmountUnit(food.units[idx]) ? 100 : 1);
 const shortName = (n: string) => n.replace(/\s*\(.*?\)/g, '').replace(/,.*$/, '').trim();
 
-export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void }) {
+export function FoodBuilder({ date, onDone, mode = 'log' }: { date?: string; onDone: () => void; mode?: 'log' | 'saveMeal' }) {
   const lib = useFoods();
   const { handSize = 'medium' } = useSettings();
   const toast = useToast();
@@ -37,6 +37,8 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
   const autoName = items.map((i) => shortName(i.food.name)).filter((v, i, a) => a.indexOf(v) === i).join(' + ');
   const finalName = (nameEdited ? name : autoName).trim();
   const usesHands = items.some((i) => isHandUnit(i.food.units[i.unitIdx]));
+  const hasDish = items.some((i) => i.food.category === 'dish');
+  const takeout = TAKEOUT_KEYS.map((k) => lib.byKey.get(k)).filter((x): x is FoodDef => !!x);
 
   const add = (food: FoodDef) => {
     setItems((xs) => [...xs, { id: nextId++, food, unitIdx: 0, qty: defaultQty(food, 0) }]);
@@ -62,9 +64,15 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
         fat: Math.round(m.fat * 10) / 10,
       };
     });
+    if (mode === 'saveMeal') {
+      await saveMeal({ name: finalName, kcal: total.kcal, protein: total.protein, carbs: total.carbs, fat: total.fat, items: logged, useCount: 0 });
+      toast(`Saved meal ${finalName}`);
+      onDone();
+      return;
+    }
     const undo = await logCustom(
       { name: finalName, kcal: total.kcal, protein: total.protein, carbs: total.carbs, fat: total.fat, items: logged, saveAsMeal: save },
-      date,
+      date!,
     );
     toast(`Logged ${finalName} · ${total.kcal} kcal`, undo);
     onDone();
@@ -110,6 +118,18 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
             )}
           </div>
         )}
+        {!q.trim() && takeout.length > 0 && (
+          <>
+            <p className="text-xs text-zinc-500 mt-2 mb-1">Popular takeout:</p>
+            <div className="flex flex-wrap gap-2">
+              {takeout.map((f) => (
+                <button key={f.key} type="button" className="min-h-11 px-3 rounded-full bg-amber-50 dark:bg-amber-950/60 text-sm" onClick={() => add(f)}>
+                  {shortName(f.name)}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {q.trim() && results.length > 0 && (
           <button type="button" className="min-h-11 text-sm text-zinc-500" onClick={() => setAdding(q.trim())}>
             Can’t find it? Add your own
@@ -130,7 +150,7 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
                   <span className="tabular-nums text-sm">{Math.round(m.kcal)} kcal</span>
                   <button type="button" className="min-h-11 min-w-11 text-zinc-400 hover:text-red-600" aria-label={`Remove ${it.food.name}`} onClick={() => remove(it.id)}>✕</button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {amount ? (
                     <input
                       className={`${inputCls.replace('w-full', 'w-24')} text-right`}
@@ -146,7 +166,7 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
                       <button type="button" className="min-h-11 min-w-11 text-xl" aria-label="More" onClick={() => update(it.id, { qty: it.qty + (it.qty < 1 ? 0.25 : 0.5) })}>+</button>
                     </div>
                   )}
-                  <div className="flex-1 flex gap-1 overflow-x-auto" role="radiogroup" aria-label={`${it.food.name} unit`}>
+                  <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`${it.food.name} unit`}>
                     {it.food.units.map((un, idx) => (
                       <button
                         key={idx}
@@ -182,6 +202,7 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
               </div>
             ))}
           </div>
+          {hasDish && <p className="text-xs text-zinc-500 -mt-1">Restaurant portions vary. When unsure, pick the bigger size.</p>}
           {usesHands && <p className="text-xs text-zinc-500 -mt-1">Hand portions sized for a {handSize} hand (change in Settings).</p>}
           <Input
             value={nameEdited ? name : autoName}
@@ -192,12 +213,14 @@ export function FoodBuilder({ date, onDone }: { date: string; onDone: () => void
             placeholder="Name, e.g. Grilled cheese"
             aria-label="Meal name"
           />
-          <label className="flex items-center gap-3 min-h-11">
-            <input type="checkbox" className="size-5 accent-emerald-600" checked={save} onChange={(e) => setSave(e.target.checked)} />
-            Save as meal (one tap next time)
-          </label>
+          {mode === 'log' && (
+            <label className="flex items-center gap-3 min-h-11">
+              <input type="checkbox" className="size-5 accent-emerald-600" checked={save} onChange={(e) => setSave(e.target.checked)} />
+              Save as meal (one tap next time)
+            </label>
+          )}
           <Button variant="primary" className="w-full" disabled={!finalName} onClick={log}>
-            Log it · {total.kcal} kcal
+            {mode === 'log' ? 'Log it' : 'Save meal'} · {total.kcal} kcal
           </Button>
         </>
       )}

@@ -27,3 +27,23 @@ export const optNum = (s: string): number | undefined => {
 };
 
 export const fmt = (n: number) => n.toLocaleString();
+
+/** Segmented tabs used in modals. */
+export function Tabs<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: readonly (readonly [T, string])[] }) {
+  return (
+    <div className="grid gap-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 mb-3" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }} role="tablist">
+      {options.map(([k, label]) => (
+        <button
+          key={k}
+          type="button"
+          role="tab"
+          aria-selected={value === k}
+          onClick={() => onChange(k)}
+          className={`min-h-10 rounded-md text-sm ${value === k ? 'bg-white dark:bg-zinc-950 shadow font-semibold' : 'text-zinc-500'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}

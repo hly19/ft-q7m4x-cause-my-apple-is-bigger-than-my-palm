@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 import { ItemsList } from '../components/ItemsList';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Button, Input, inputCls, optNum } from '../components/ui';
+import { Button, Input, inputCls, optNum, Tabs } from '../components/ui';
+import { FoodBuilder } from '../components/FoodBuilder';
 import { db } from '../db/db';
 import { saveMeal } from '../db/repo';
 import type { Meal } from '../db/types';
@@ -16,6 +17,7 @@ export function Meals() {
   const [sort, setSort] = useState<Sort>('used');
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<Partial<Meal> | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -34,8 +36,9 @@ export function Meals() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Meals</h1>
-        <Button variant="primary" onClick={() => setEditing({})}>+ Meal</Button>
+        <Button variant="primary" onClick={() => setCreating(true)}>+ Meal</Button>
       </div>
+      <p className="text-sm text-zinc-500 -mt-2">Saved combos for one-tap logging on Today, e.g. your usual breakfast.</p>
       <Input type="search" placeholder="Search meals or tags" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
       <div className="flex gap-2">
         <select className={`${inputCls} flex-1`} value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
@@ -63,11 +66,12 @@ export function Meals() {
         ))}
       </ul>
       {editing && <MealForm meal={editing} onClose={() => setEditing(null)} />}
+      {creating && <NewMeal onClose={() => setCreating(false)} />}
     </div>
   );
 }
 
-function MealForm({ meal, onClose }: { meal: Partial<Meal>; onClose: () => void }) {
+function MealForm({ meal, onClose, header }: { meal: Partial<Meal>; onClose: () => void; header?: React.ReactNode }) {
   const [f, setF] = useState({
     name: meal.name ?? '',
     kcal: meal.kcal?.toString() ?? '',
@@ -107,6 +111,7 @@ function MealForm({ meal, onClose }: { meal: Partial<Meal>; onClose: () => void 
 
   return (
     <Modal title={meal.id ? 'Edit meal' : 'New meal'} onClose={onClose}>
+      {header}
       <form onSubmit={submit} className="space-y-3">
         <ItemsList items={meal.items} />
         <Input autoFocus={!meal.id} placeholder="Name" value={f.name} onChange={set('name')} aria-label="Name" />
@@ -124,6 +129,18 @@ function MealForm({ meal, onClose }: { meal: Partial<Meal>; onClose: () => void 
           <Button variant="primary" className="flex-1" disabled={!valid}>Save</Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function NewMeal({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<'build' | 'quick'>('build');
+  return tab === 'quick' ? (
+    <MealForm meal={{}} onClose={onClose} header={<Tabs value={tab} onChange={setTab} options={[['build', 'Build from foods'], ['quick', 'Enter kcal']] as const} />} />
+  ) : (
+    <Modal title="New meal" onClose={onClose}>
+      <Tabs value={tab} onChange={setTab} options={[['build', 'Build from foods'], ['quick', 'Enter kcal']] as const} />
+      <FoodBuilder mode="saveMeal" onDone={onClose} />
     </Modal>
   );
 }

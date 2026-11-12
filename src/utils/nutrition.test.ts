@@ -74,3 +74,24 @@ describe('search', () => {
 it('formats quantities', () => {
   expect([fmtQty(0.5), fmtQty(1), fmtQty(1.5), fmtQty(2.25), fmtQty(150)]).toEqual(['½', '1', '1½', '2¼', '150']);
 });
+
+describe('restaurant dishes', () => {
+  const serving = (key: string, label: string) => {
+    const f = food(key);
+    const u = f.units.find((x) => x.label === label)!;
+    return itemNutrition(f, u, 1).kcal;
+  };
+  it('have realistic restaurant portions', () => {
+    const bc = serving('butter-chicken', 'restaurant portion (no rice)');
+    expect(bc).toBeGreaterThanOrEqual(400);
+    expect(bc).toBeLessThanOrEqual(700);
+    const poutine = serving('poutine', 'regular');
+    expect(poutine).toBeGreaterThanOrEqual(700);
+    expect(poutine).toBeLessThanOrEqual(1000);
+  });
+  it('are searchable by name and cuisine', () => {
+    expect(searchFoods('butter chicken')[0].key).toBe('butter-chicken');
+    expect(searchFoods('general tso').map((f) => f.key)).toContain('general-tao');
+    expect(searchFoods('thai').length).toBeGreaterThan(3);
+  });
+});

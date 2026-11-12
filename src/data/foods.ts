@@ -1,52 +1,12 @@
 // Built-in food list. Approximate USDA-style values per 100 g, as eaten (cooked where relevant).
 // Accuracy target is ~80%: good enough for trends, not lab precision.
 
-export type UnitKey =
-  | 'g' | 'ml' | 'piece' | 'slice' | 'tsp' | 'tbsp' | 'cup' | 'scoop' | 'can' | 'serving'
-  | 'palm' | 'cupped' | 'fist' | 'thumb';
+import { booze, f, G, ML, PALM, type FoodDef } from './foodDef';
+import { DISHES } from './dishes';
 
-export const HAND_UNITS: UnitKey[] = ['palm', 'cupped', 'fist', 'thumb'];
+export * from './foodDef';
 
-export interface FoodUnit {
-  unit: UnitKey;
-  grams: number;   // grams (or ml) in ONE unit, for a medium hand where relevant
-  label?: string;  // overrides the default unit name, e.g. "glass (5 oz)"
-}
-
-export type Category = 'protein' | 'dairy' | 'carb' | 'veg' | 'fruit' | 'fat' | 'drink' | 'snack' | 'mixed';
-
-export interface Macros { kcal: number; protein: number; carbs: number; fat: number }
-
-export interface FoodDef {
-  key: string;
-  name: string;
-  category: Category;
-  per100g: Macros;
-  units: FoodUnit[];   // first one is the default
-  aliases?: string[];
-  alcohol?: boolean;   // kcal includes alcohol (7 kcal/g), so 4/4/9 doesn't add up
-}
-
-type U = [UnitKey, number, string?];
-
-function f(key: string, name: string, category: Category, m: [number, number, number, number], units: U[], aliases?: string[], extra?: Partial<FoodDef>): FoodDef {
-  return {
-    key,
-    name,
-    category,
-    per100g: { kcal: m[0], protein: m[1], carbs: m[2], fat: m[3] },
-    units: units.map(([unit, grams, label]) => ({ unit, grams, ...(label ? { label } : {}) })),
-    ...(aliases ? { aliases } : {}),
-    ...extra,
-  };
-}
-
-const PALM: U = ['palm', 100];
-const G: U = ['g', 1];
-const ML: U = ['ml', 1];
-const booze = { alcohol: true };
-
-export const FOODS: FoodDef[] = [
+const BASE_FOODS: FoodDef[] = [
   // ---- Protein (cooked) ----
   f('chicken-breast', 'Chicken breast', 'protein', [165, 31, 0, 3.6], [PALM, ['piece', 170, 'breast'], G], ['chicken']),
   f('chicken-thigh', 'Chicken thigh', 'protein', [209, 26, 0, 10.9], [PALM, ['piece', 100, 'thigh'], G], ['chicken']),
@@ -226,8 +186,13 @@ export const FOODS: FoodDef[] = [
   f('ketchup', 'Ketchup', 'snack', [101, 1, 26, 0.1], [['tbsp', 17], G]),
 ];
 
+export const FOODS: FoodDef[] = [...BASE_FOODS, ...DISHES];
+
 /** Shown when the search box is empty and there's no history yet. */
 export const COMMON_KEYS = [
   'egg', 'white-bread', 'cheddar', 'butter', 'chicken-breast', 'white-rice',
   'banana', 'greek-yogurt', 'whey', 'milk-2', 'peanut-butter', 'broccoli',
 ];
+
+/** "Popular takeout" chips in the builder. */
+export const TAKEOUT_KEYS = ['butter-chicken', 'poutine', 'pad-thai', 'shawarma-wrap', 'maki-roll', 'pizza-pepperoni'];

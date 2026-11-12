@@ -214,7 +214,7 @@ function MyFoods() {
   const [editing, setEditing] = useState<UserFood | 'new' | null>(null);
   return (
     <>
-      {userFoods.length === 0 && <p className="text-sm text-zinc-500">Foods you add in the food builder show up here.</p>}
+      <p className="text-sm text-zinc-500">Single foods you add to the search list, e.g. a protein bar from its label. For combos, save a meal instead.</p>
       <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {userFoods.map((f) => (
           <li key={f.id} className="flex items-center">
